@@ -75,11 +75,17 @@ void RES(cpu_t cpu);
 //for implementation consider how you will recieve the read information
 //possibly pass a pointer to read the data to 
 
+//Implied				Immediate
 uint8_t IMP(cpu_t cpu); uint8_t IMD(cpu_t cpu); 
+//Absolute				Zero-Page
 uint8_t ABS(cpu_t cpu); uint8_t ZPZ(cpu_t cpu); 
+//Indexed AbsoluteX		Indexed Absolute Y
 uint8_t ABX(cpu_t cpu); uint8_t ABY(cpu_t cpu); 
+//Zero-PageX			Zero-PageY
 uint8_t ZPX(cpu_t cpu); uint8_t ZPY(cpu_t cpu); 
+//Indirect				Relative
 uint8_t IND(cpu_t cpu); uint8_t REL(cpu_t cpu); 
+//Indirect Zero-PageX	Indirect Zero-PageY	
 uint8_t IZX(cpu_t cpu); uint8_t IZY(cpu_t cpu); 
 
 //define instruction functions
