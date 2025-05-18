@@ -19,18 +19,17 @@ struct op_table_header {
 	iinf** table; 
 }; 
 typedef struct op_table_header* op_table_t; 
+typedef struct op_table_header op_table; 
 
 op_table_t op_table_new(); 
 
-void op_table_free(op_table_t op_table); 
+void op_table_free(op_table_t op_tab); 
 
-iinf* op_table_get(op_table_t op_table); 
+iinf* op_table_get(op_table_t op_tab, uint8_t ind); 
 
 /****end interface****/
 
 /****start implementation****/
-
-typedef struct op_table_header op_table; 
 
 op_table* op_table_new() {
 	//allocate memory
@@ -445,17 +444,21 @@ op_table* op_table_new() {
 	return result; 
 }
 
-void op_table_free(iinf** table) {
-	REQUIRES(table != NULL)
+void op_table_free(op_table* op_tab) {
+	REQUIRES(op_tab != NULL); 
+	REQUIRES(op_tab->table != NULL); 	
 
 	for(int i = 0; i < 16; i++)
-		free(table[i]); 
+		free(op_tab->table[i]); 
 	
-	free(table); 
+	free(op_tab->table); 
+	free(op_tab); 
 }
 
-iinf* op_table_get(uint8_t ind) {
-
+iinf* op_table_get(op_table* op_tab, uint8_t ind) {
+	uint8_t r = (ind & 0xf0) >> 4; 
+	uint8_t c = (ind & 0x0f); 
+	return op_tab->table[r][c]; 
 }
 
 /****end implementation****/

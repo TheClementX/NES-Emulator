@@ -19,10 +19,10 @@ typedef struct bus* bus_t;
 
 bus_t bus_new(); 
 
-uint8_t bus_read(bus_t, uint16_t addr, bool read_only); 
+uint8_t bus_read(bus_t bus, uint16_t addr, bool read_only); 
 
-void bus_write(bus_t, uint16_t addr, uint8_t data); 
+void bus_write(bus_t bus, uint16_t addr, uint8_t data); 
 
-void bus_free(); 
+void bus_free(bus_t bus); 
 
 #endif

@@ -12,15 +12,18 @@ typedef uint8_t cpu_func(void);
 
 struct cpu {
 	//registers 
-	uint8_t accum; 
+	uint8_t accum; //accumulator
 	uint8_t X; 
 	uint8_t Y; 
-	uint16_t pc; 
-	uint8_t stkpt; 
-	uint8_t stat; 
+	uint16_t pc; //program counter
+	uint8_t stkpt; //stack pointer 
+	uint8_t stat; //status / flags
 
-	//bus variables
 	bus_t bus; 	
+	op_table_t op_table; 
+
+	uint8_t cycles; //to store cycle count 
+	uint8_t tmp; //to store mem values
 }; 
 typedef struct cpu* cpu_t; 
 
@@ -38,16 +41,17 @@ enum FLAGS {
 typedef enum FLAGS FLAGS; 
 
 //new and free functions
-cpu_t cpu_new(bus_t bus); 
+cpu_t cpu_new(); 
 void cpu_free(cpu_t cpu); 
+void cpu_bind(cpu_t cpu, bus_t bus);
 
 //flag functions
-void flag_set(FLAGS f, cpu_t cpu); 
+void flag_tog(FLAGS f, cpu_t cpu); 
 bool flag_get(FLAGS f, cpu_t cpu); 
 
 //read and write functions
 uint8_t cpu_read(cpu_t cpu, uint16_t addr, bool read_only); 
-void cpu_write(cpu_t cpu, uint16_t addr); 
+void cpu_write(cpu_t cpu, uint16_t addr, uint8_t data); 
 
 //hardware functions: functions that would be called by hardware
 
