@@ -324,124 +324,123 @@ op_table* op_table_new() {
 
 	/*11***********************************************/
 	
-	result[0][0]->inst = &BRK; result[0][0]->mem_mode = &IMP; result[0][0]->cycles = 7;
-	result[0][1]->inst = &ORA; result[0][1]->mem_mode = &IZX; result[0][1]->cycles = 6;
-	result[0][2]->inst = &EMP; result[0][2]->mem_mode = &EMP; result[0][2]->cycles = 2;
-	result[0][3]->inst = &EMP; result[0][3]->mem_mode = &EMP; result[0][3]->cycles = 2;
+	result[11][0]->inst = &BCS; result[11][0]->mem_mode = &REL; result[11][0]->cycles = 2;
+	result[11][1]->inst = &LDA; result[11][1]->mem_mode = &IZY; result[11][1]->cycles = 5;
+	result[11][2]->inst = &EMP; result[11][2]->mem_mode = &EMP; result[11][2]->cycles = 2;
+	result[11][3]->inst = &EMP; result[11][3]->mem_mode = &EMP; result[11][3]->cycles = 2;
 
-	result[0][4]->inst = &EMP; result[0][4]->mem_mode = &EMP; result[0][4]->cycles = 2;
-	result[0][5]->inst = &ORA; result[0][5]->mem_mode = &ZPZ; result[0][5]->cycles = 3;
-	result[0][6]->inst = &ASL; result[0][6]->mem_mode = &ZPZ; result[0][6]->cycles = 5;
-	result[0][7]->inst = &EMP; result[0][7]->mem_mode = &EMP; result[0][7]->cycles = 2;
+	result[11][4]->inst = &LDY; result[11][4]->mem_mode = &ZPX; result[11][4]->cycles = 4;
+	result[11][5]->inst = &LDA; result[11][5]->mem_mode = &ZPX; result[11][5]->cycles = 4;
+	result[11][6]->inst = &LDX; result[11][6]->mem_mode = &ZPY; result[11][6]->cycles = 4;
+	result[11][7]->inst = &EMP; result[11][7]->mem_mode = &EMP; result[11][7]->cycles = 2;
 	
-	result[0][8]->inst = &PHP; result[0][8]->mem_mode = &IMP; result[0][8]->cycles = 3;
-	result[0][9]->inst = &ORA; result[0][9]->mem_mode = &IMD; result[0][9]->cycles = 2;
-	result[0][10]->inst = &ASL; result[0][10]->mem_mode = &IMP; result[0][10]->cycles = 2;
-	result[0][11]->inst = &EMP; result[0][11]->mem_mode = &EMP; result[0][11]->cycles = 2;
+	result[11][8]->inst = &CLV; result[11][8]->mem_mode = &IMP; result[11][8]->cycles = 2;
+	result[11][9]->inst = &LDA; result[11][9]->mem_mode = &ABY; result[11][9]->cycles = 4;
+	result[11][10]->inst = &TSX; result[11][10]->mem_mode = &IMP; result[11][10]->cycles = 2;
+	result[11][11]->inst = &EMP; result[11][11]->mem_mode = &EMP; result[11][11]->cycles = 2;
 
-	result[0][12]->inst = &EMP; result[0][12]->mem_mode = &EMP; result[0][12]->cycles = 2; 
-	result[0][13]->inst = &ORA; result[0][13]->mem_mode = &ABS; result[0][13]->cycles = 4;
-	result[0][14]->inst = &ASL; result[0][14]->mem_mode = &ABS; result[0][14]->cycles = 6;
-	result[0][15]->inst = &EMP; result[0][15]->mem_mode = &EMP; result[0][15]->cycles = 2;
+	result[11][12]->inst = &LDY; result[11][12]->mem_mode = &ABX; result[11][12]->cycles = 4; 
+	result[11][13]->inst = &LDA; result[11][13]->mem_mode = &ABX; result[11][13]->cycles = 4;
+	result[11][14]->inst = &LDX; result[11][14]->mem_mode = &ABY; result[11][14]->cycles = 4;
+	result[11][15]->inst = &EMP; result[11][15]->mem_mode = &EMP; result[11][15]->cycles = 2;
 
-	/**************************************************/
+	/*11***********************************************/
 
-	/**************************************************/
+	/*12***********************************************/
 	
-	result[0][0]->inst = &BRK; result[0][0]->mem_mode = &IMP; result[0][0]->cycles = 7;
-	result[0][1]->inst = &ORA; result[0][1]->mem_mode = &IZX; result[0][1]->cycles = 6;
-	result[0][2]->inst = &EMP; result[0][2]->mem_mode = &EMP; result[0][2]->cycles = 2;
-	result[0][3]->inst = &EMP; result[0][3]->mem_mode = &EMP; result[0][3]->cycles = 2;
+	result[12][0]->inst = &CPY; result[12][0]->mem_mode = &IMD; result[12][0]->cycles = 2;
+	result[12][1]->inst = &CMP; result[12][1]->mem_mode = &IZX; result[12][1]->cycles = 6;
+	result[12][2]->inst = &EMP; result[12][2]->mem_mode = &EMP; result[12][2]->cycles = 2;
+	result[12][3]->inst = &EMP; result[12][3]->mem_mode = &EMP; result[12][3]->cycles = 2;
 
-	result[0][4]->inst = &EMP; result[0][4]->mem_mode = &EMP; result[0][4]->cycles = 2;
-	result[0][5]->inst = &ORA; result[0][5]->mem_mode = &ZPZ; result[0][5]->cycles = 3;
-	result[0][6]->inst = &ASL; result[0][6]->mem_mode = &ZPZ; result[0][6]->cycles = 5;
-	result[0][7]->inst = &EMP; result[0][7]->mem_mode = &EMP; result[0][7]->cycles = 2;
+	result[12][4]->inst = &CPY; result[12][4]->mem_mode = &ZPZ; result[12][4]->cycles = 3;
+	result[12][5]->inst = &CMP; result[12][5]->mem_mode = &ZPZ; result[12][5]->cycles = 3;
+	result[12][6]->inst = &DEC; result[12][6]->mem_mode = &ZPZ; result[12][6]->cycles = 5;
+	result[12][7]->inst = &EMP; result[12][7]->mem_mode = &EMP; result[12][7]->cycles = 2;
 	
-	result[0][8]->inst = &PHP; result[0][8]->mem_mode = &IMP; result[0][8]->cycles = 3;
-	result[0][9]->inst = &ORA; result[0][9]->mem_mode = &IMD; result[0][9]->cycles = 2;
-	result[0][10]->inst = &ASL; result[0][10]->mem_mode = &IMP; result[0][10]->cycles = 2;
-	result[0][11]->inst = &EMP; result[0][11]->mem_mode = &EMP; result[0][11]->cycles = 2;
+	result[12][8]->inst = &INY; result[12][8]->mem_mode = &IMP; result[12][8]->cycles = 2;
+	result[12][9]->inst = &CMP; result[12][9]->mem_mode = &IMD; result[12][9]->cycles = 2;
+	result[12][10]->inst = &DEX; result[12][10]->mem_mode = &IMP; result[12][10]->cycles = 2;
+	result[12][11]->inst = &EMP; result[12][11]->mem_mode = &EMP; result[12][11]->cycles = 2;
 
-	result[0][12]->inst = &EMP; result[0][12]->mem_mode = &EMP; result[0][12]->cycles = 2; 
-	result[0][13]->inst = &ORA; result[0][13]->mem_mode = &ABS; result[0][13]->cycles = 4;
-	result[0][14]->inst = &ASL; result[0][14]->mem_mode = &ABS; result[0][14]->cycles = 6;
-	result[0][15]->inst = &EMP; result[0][15]->mem_mode = &EMP; result[0][15]->cycles = 2;
+	result[12][12]->inst = &CPY; result[12][12]->mem_mode = &ABS; result[12][12]->cycles = 4; 
+	result[12][13]->inst = &CMP; result[12][13]->mem_mode = &ABS; result[12][13]->cycles = 4;
+	result[12][14]->inst = &DEC; result[12][14]->mem_mode = &ABS; result[12][14]->cycles = 6;
+	result[12][15]->inst = &EMP; result[12][15]->mem_mode = &EMP; result[12][15]->cycles = 2;
 
-	/**************************************************/
+	/*12***********************************************/
 
-	/**************************************************/
+	/*13***********************************************/
 	
-	result[0][0]->inst = &BRK; result[0][0]->mem_mode = &IMP; result[0][0]->cycles = 7;
-	result[0][1]->inst = &ORA; result[0][1]->mem_mode = &IZX; result[0][1]->cycles = 6;
-	result[0][2]->inst = &EMP; result[0][2]->mem_mode = &EMP; result[0][2]->cycles = 2;
-	result[0][3]->inst = &EMP; result[0][3]->mem_mode = &EMP; result[0][3]->cycles = 2;
+	result[13][0]->inst = &BNE; result[13][0]->mem_mode = &REL; result[13][0]->cycles = 2;
+	result[13][1]->inst = &CMP; result[13][1]->mem_mode = &IZY; result[13][1]->cycles = 5;
+	result[13][2]->inst = &EMP; result[13][2]->mem_mode = &EMP; result[13][2]->cycles = 2;
+	result[13][3]->inst = &EMP; result[13][3]->mem_mode = &EMP; result[13][3]->cycles = 2;
 
-	result[0][4]->inst = &EMP; result[0][4]->mem_mode = &EMP; result[0][4]->cycles = 2;
-	result[0][5]->inst = &ORA; result[0][5]->mem_mode = &ZPZ; result[0][5]->cycles = 3;
-	result[0][6]->inst = &ASL; result[0][6]->mem_mode = &ZPZ; result[0][6]->cycles = 5;
-	result[0][7]->inst = &EMP; result[0][7]->mem_mode = &EMP; result[0][7]->cycles = 2;
+	result[13][4]->inst = &EMP; result[13][4]->mem_mode = &EMP; result[13][4]->cycles = 2;
+	result[13][5]->inst = &CMP; result[13][5]->mem_mode = &ZPX; result[13][5]->cycles = 4;
+	result[13][6]->inst = &DEC; result[13][6]->mem_mode = &ZPX; result[13][6]->cycles = 6;
+	result[13][7]->inst = &EMP; result[13][7]->mem_mode = &EMP; result[13][7]->cycles = 2;
 	
-	result[0][8]->inst = &PHP; result[0][8]->mem_mode = &IMP; result[0][8]->cycles = 3;
-	result[0][9]->inst = &ORA; result[0][9]->mem_mode = &IMD; result[0][9]->cycles = 2;
-	result[0][10]->inst = &ASL; result[0][10]->mem_mode = &IMP; result[0][10]->cycles = 2;
-	result[0][11]->inst = &EMP; result[0][11]->mem_mode = &EMP; result[0][11]->cycles = 2;
+	result[13][8]->inst = &CLD; result[13][8]->mem_mode = &IMP; result[13][8]->cycles = 2;
+	result[13][9]->inst = &CMP; result[13][9]->mem_mode = &ABY; result[13][9]->cycles = 4;
+	result[13][10]->inst = &EMP; result[13][10]->mem_mode = &EMP; result[13][10]->cycles = 2;
+	result[13][11]->inst = &EMP; result[13][11]->mem_mode = &EMP; result[13][11]->cycles = 2;
 
-	result[0][12]->inst = &EMP; result[0][12]->mem_mode = &EMP; result[0][12]->cycles = 2; 
-	result[0][13]->inst = &ORA; result[0][13]->mem_mode = &ABS; result[0][13]->cycles = 4;
-	result[0][14]->inst = &ASL; result[0][14]->mem_mode = &ABS; result[0][14]->cycles = 6;
-	result[0][15]->inst = &EMP; result[0][15]->mem_mode = &EMP; result[0][15]->cycles = 2;
+	result[13][12]->inst = &EMP; result[13][12]->mem_mode = &EMP; result[13][12]->cycles = 2; 
+	result[13][13]->inst = &CMP; result[13][13]->mem_mode = &ABX; result[13][13]->cycles = 4;
+	result[13][14]->inst = &DEC; result[13][14]->mem_mode = &ABX; result[13][14]->cycles = 7;
+	result[13][15]->inst = &EMP; result[13][15]->mem_mode = &EMP; result[13][15]->cycles = 2;
 
-	/**************************************************/
+	/*13***********************************************/
 
-	/**************************************************/
+	/*14***********************************************/
 	
-	result[0][0]->inst = &BRK; result[0][0]->mem_mode = &IMP; result[0][0]->cycles = 7;
-	result[0][1]->inst = &ORA; result[0][1]->mem_mode = &IZX; result[0][1]->cycles = 6;
-	result[0][2]->inst = &EMP; result[0][2]->mem_mode = &EMP; result[0][2]->cycles = 2;
-	result[0][3]->inst = &EMP; result[0][3]->mem_mode = &EMP; result[0][3]->cycles = 2;
+	result[14][0]->inst = &CPX; result[14][0]->mem_mode = &IMD; result[14][0]->cycles = 2;
+	result[14][1]->inst = &SBC; result[14][1]->mem_mode = &IZX; result[14][1]->cycles = 6;
+	result[14][2]->inst = &EMP; result[14][2]->mem_mode = &EMP; result[14][2]->cycles = 2;
+	result[14][3]->inst = &EMP; result[14][3]->mem_mode = &EMP; result[14][3]->cycles = 2;
 
-	result[0][4]->inst = &EMP; result[0][4]->mem_mode = &EMP; result[0][4]->cycles = 2;
-	result[0][5]->inst = &ORA; result[0][5]->mem_mode = &ZPZ; result[0][5]->cycles = 3;
-	result[0][6]->inst = &ASL; result[0][6]->mem_mode = &ZPZ; result[0][6]->cycles = 5;
-	result[0][7]->inst = &EMP; result[0][7]->mem_mode = &EMP; result[0][7]->cycles = 2;
+	result[14][4]->inst = &CPX; result[14][4]->mem_mode = &ZPZ; result[14][4]->cycles = 3;
+	result[14][5]->inst = &SBC; result[14][5]->mem_mode = &ZPZ; result[14][5]->cycles = 3;
+	result[14][6]->inst = &INC; result[14][6]->mem_mode = &ZPZ; result[14][6]->cycles = 5;
+	result[14][7]->inst = &EMP; result[14][7]->mem_mode = &EMP; result[14][7]->cycles = 2;
 	
-	result[0][8]->inst = &PHP; result[0][8]->mem_mode = &IMP; result[0][8]->cycles = 3;
-	result[0][9]->inst = &ORA; result[0][9]->mem_mode = &IMD; result[0][9]->cycles = 2;
-	result[0][10]->inst = &ASL; result[0][10]->mem_mode = &IMP; result[0][10]->cycles = 2;
-	result[0][11]->inst = &EMP; result[0][11]->mem_mode = &EMP; result[0][11]->cycles = 2;
+	result[14][8]->inst = &INX; result[14][8]->mem_mode = &IMP; result[14][8]->cycles = 2;
+	result[14][9]->inst = &SBC; result[14][9]->mem_mode = &IMD; result[14][9]->cycles = 2;
+	result[14][10]->inst = &NOP; result[14][10]->mem_mode = &IMP; result[14][10]->cycles = 2;
+	result[14][11]->inst = &EMP; result[14][11]->mem_mode = &EMP; result[14][11]->cycles = 2;
 
-	result[0][12]->inst = &EMP; result[0][12]->mem_mode = &EMP; result[0][12]->cycles = 2; 
-	result[0][13]->inst = &ORA; result[0][13]->mem_mode = &ABS; result[0][13]->cycles = 4;
-	result[0][14]->inst = &ASL; result[0][14]->mem_mode = &ABS; result[0][14]->cycles = 6;
-	result[0][15]->inst = &EMP; result[0][15]->mem_mode = &EMP; result[0][15]->cycles = 2;
+	result[14][12]->inst = &CPX; result[14][12]->mem_mode = &ABS; result[14][12]->cycles = 4; 
+	result[14][13]->inst = &SBC; result[14][13]->mem_mode = &ABS; result[14][13]->cycles = 4;
+	result[14][14]->inst = &INC; result[14][14]->mem_mode = &ABS; result[14][14]->cycles = 6;
+	result[14][15]->inst = &EMP; result[14][15]->mem_mode = &EMP; result[14][15]->cycles = 2;
 
-	/**************************************************/
+	/*14***********************************************/
 
-	/**************************************************/
+	/*15***********************************************/
 	
-	result[0][0]->inst = &BRK; result[0][0]->mem_mode = &IMP; result[0][0]->cycles = 7;
-	result[0][1]->inst = &ORA; result[0][1]->mem_mode = &IZX; result[0][1]->cycles = 6;
-	result[0][2]->inst = &EMP; result[0][2]->mem_mode = &EMP; result[0][2]->cycles = 2;
-	result[0][3]->inst = &EMP; result[0][3]->mem_mode = &EMP; result[0][3]->cycles = 2;
+	result[15][0]->inst = &BEQ; result[15][0]->mem_mode = &REL; result[15][0]->cycles = 2;
+	result[15][1]->inst = &SBC; result[15][1]->mem_mode = &IZY; result[15][1]->cycles = 5;
+	result[15][2]->inst = &EMP; result[15][2]->mem_mode = &EMP; result[15][2]->cycles = 2;
+	result[15][3]->inst = &EMP; result[15][3]->mem_mode = &EMP; result[15][3]->cycles = 2;
 
-	result[0][4]->inst = &EMP; result[0][4]->mem_mode = &EMP; result[0][4]->cycles = 2;
-	result[0][5]->inst = &ORA; result[0][5]->mem_mode = &ZPZ; result[0][5]->cycles = 3;
-	result[0][6]->inst = &ASL; result[0][6]->mem_mode = &ZPZ; result[0][6]->cycles = 5;
-	result[0][7]->inst = &EMP; result[0][7]->mem_mode = &EMP; result[0][7]->cycles = 2;
+	result[15][4]->inst = &EMP; result[15][4]->mem_mode = &EMP; result[15][4]->cycles = 2;
+	result[15][5]->inst = &SBC; result[15][5]->mem_mode = &ZPX; result[15][5]->cycles = 4;
+	result[15][6]->inst = &INC; result[15][6]->mem_mode = &ZPX; result[15][6]->cycles = 6;
+	result[15][7]->inst = &EMP; result[15][7]->mem_mode = &EMP; result[15][7]->cycles = 2;
 	
-	result[0][8]->inst = &PHP; result[0][8]->mem_mode = &IMP; result[0][8]->cycles = 3;
-	result[0][9]->inst = &ORA; result[0][9]->mem_mode = &IMD; result[0][9]->cycles = 2;
-	result[0][10]->inst = &ASL; result[0][10]->mem_mode = &IMP; result[0][10]->cycles = 2;
-	result[0][11]->inst = &EMP; result[0][11]->mem_mode = &EMP; result[0][11]->cycles = 2;
+	result[15][8]->inst = &SED; result[15][8]->mem_mode = &IMP; result[15][8]->cycles = 2;
+	result[15][9]->inst = &SBC; result[15][9]->mem_mode = &ABY; result[15][9]->cycles = 4;
+	result[15][10]->inst = &EMP; result[15][10]->mem_mode = &EMP; result[15][10]->cycles = 2;
+	result[15][11]->inst = &EMP; result[15][11]->mem_mode = &EMP; result[15][11]->cycles = 2;
 
-	result[0][12]->inst = &EMP; result[0][12]->mem_mode = &EMP; result[0][12]->cycles = 2; 
-	result[0][13]->inst = &ORA; result[0][13]->mem_mode = &ABS; result[0][13]->cycles = 4;
-	result[0][14]->inst = &ASL; result[0][14]->mem_mode = &ABS; result[0][14]->cycles = 6;
-	result[0][15]->inst = &EMP; result[0][15]->mem_mode = &EMP; result[0][15]->cycles = 2;
+	result[15][12]->inst = &EMP; result[15][12]->mem_mode = &EMP; result[15][12]->cycles = 2; 
+	result[15][13]->inst = &SBC; result[15][13]->mem_mode = &ABX; result[15][13]->cycles = 4;
+	result[15][14]->inst = &INC; result[15][14]->mem_mode = &ABX; result[15][14]->cycles = 7;
+	result[15][15]->inst = &EMP; result[15][15]->mem_mode = &EMP; result[15][15]->cycles = 2;
 
-	/**************************************************/
-
+	/*15***********************************************/
 
 	return result; 
 }
