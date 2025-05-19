@@ -16,6 +16,7 @@ struct cpu {
 	uint8_t X; 
 	uint8_t Y; 
 	uint16_t pc; //program counter
+	//stack is on pg1 from 0x0100 - 0x01ff
 	uint8_t stkpt; //stack pointer 
 	uint8_t stat; //status / flags
 
@@ -29,18 +30,18 @@ typedef struct cpu* cpu_t;
 
 //flag functions
 enum FLAGS {
-	C = (1 << 0), 
-	Z = (1 << 1), 
-	I = (1 << 2), 
-	D = (1 << 3), 
-	B = (1 << 4), 
-	U = (1 << 5), 
-	V = (1 << 6), 
-	N = (1 << 7), 
+	C = (1 << 0), //carry flag 
+	Z = (1 << 1), //zero flag 
+	I = (1 << 2), //interrupt inhibit flag 
+	D = (1 << 3), //decimal flag 
+	B = (1 << 4), //break flag 
+	U = (1 << 5), //unused 
+	V = (1 << 6), //overflow flag 
+	N = (1 << 7), //negative flag 
 }; 
 typedef enum FLAGS FLAGS; 
 
-//new and free functions
+//new free bind functions
 cpu_t cpu_new(); 
 void cpu_free(cpu_t cpu); 
 void cpu_bind(cpu_t cpu, bus_t bus);
@@ -54,6 +55,9 @@ uint8_t cpu_read(cpu_t cpu, uint16_t addr, bool read_only);
 void cpu_write(cpu_t cpu, uint16_t addr, uint8_t data); 
 
 //hardware functions: functions that would be called by hardware
+
+//stack push
+void cpu_stack_push(cpu_t cpu, uint8_t data); 
 
 //clock
 void clock(cpu_t cpu); 
@@ -76,8 +80,9 @@ void RES(cpu_t cpu);
 	these functions return the required clock adjustment
 */
 
-//for implementation consider how you will recieve the read information
-//possibly pass a pointer to read the data to 
+
+//read information is put into the cpu tmp var
+//pc will only be incremented in the instruction function
 
 //Implied				Immediate
 uint8_t IMP(cpu_t cpu); uint8_t IMD(cpu_t cpu); 
