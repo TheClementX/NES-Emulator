@@ -66,20 +66,34 @@ void cpu_write(cpu_t cpu, uint16_t addr, uint8_t data) {
 //hardware functions: functions that would be called by hardware
 
 //stack push 
+//0x0100 <-- 0x01ff : grows left to right or up in memory 
 void cpu_stack_push(cpu_t cpu, uint8_t data) {
 	if(cpu->stkpt < 0x0100) {
 		fprintf(stderr, "stack overflow"); 
 		exit(EXIT_FAILURE); 
 	}
 
-	cpu->bus->memory[cpu->stkpt] = data; 
+	cpu_write(cpu, cpu->stkpt, data); 
 	cpu->stkpt--; 
+}
+
+void cpu_stack_pop(cpu_t cpu) {
+	if(cpu->stkpt == 0x01ff) {
+		fprintf(stderr, "pop from an empty stack"); 
+		exit(EXIT_FAILURE); 
+	}
+
+	cpu->sktpt++; 
+	uint8_t result = cpu_read(cpu, cpu->stkpt); 
+	cpu_write(cpu, cpu->stkpt, 0x00); 
+	return result; 
 }
 
 //clock
 void clock(cpu_t cpu) {
 	if(cycles == 0) {
 		uint8_t op = cpu_read(cpu, cpu->pc, true); 
+		cpu->pc++; 
 		iinf* instr = op_table_get(cpu->op_table, op); 
 		int e1 = (*instr->mem_mode)(); //could be bad syntax
 		int e2 = (*instr->inst)(); 
@@ -369,7 +383,10 @@ uint8_t ASL(cpu_t cpu) {
 	if(res == 0) flag_set(Z, cpu); 
 	if(res & 0x80 > 0) flag_set(N, cpu); 
 
-	if(cpu->op_table[code]->mem_mode == &IMP) {
+	uint8_t r = cpu->code >> 4; 
+	uint8_t c = cpu->code & 0x0f; 
+
+	if(cpu->op_table[r][c]->mem_mode == &IMP) {
 		cpu->accum = res; 
 	} else {
 		cpu_write(cpu, cpu->cur_mem, res); 
@@ -573,83 +590,179 @@ uint8_t DEY(cpu_t cpu) {
 }
 
 uint8_t EOR(cpu_t cpu) {
-
+	uint8_t res = cpu->tmp ^ cpu->accum; 
+	if(res == 0) flag_set(Z, cpu); 
+	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	cpu->accum = res; 
+	return 0; 
 }
 
 uint8_t INC(cpu_t cpu) {
-
+	uint8_t res = cpu->tmp++; 
+	if(res == 0) flag_set(Z, cpu); 
+	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	cpu_write(cpu, cpu->cur_mem, res); 	
+	return 0; 
 }
 
 uint8_t INX(cpu_t cpu) {
-
+	uint8_t res = cpu->X++; 
+	if(res == 0) flag_set(Z, cpu); 
+	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	return 0; 
 }
 
 uint8_t INY(cpu_t cpu) {
-
+	uint8_t res = cpu->Y++; 
+	if(res == 0) flag_set(Z, cpu); 
+	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	return 0; 
 }
 
 uint8_t JMP(cpu_t cpu) {
-
+	cpu->pc = cpu->tmp; 
+	return 0; 
 }
 
+//tricky instruction could cause problems with pc push 
 uint8_t JSR(cpu_t cpu) {
+	cpu->pc--; 
+	uint8_t plo = (uint8_t)(0x00ff & cpu->pc); 
+	uint8_t phi = (uint8_t)(cpu->pc >> 8); 
 
+	cpu_stack_push(cpu, phi);  	
+	cpu_stack_push(cpu, plo);  	
+	
+	cpu->pc = cpu->tmp; 
+	return 0; 
 }
 
 uint8_t LDA(cpu_t cpu) {
-
+	cpu->accum = cpu->tmp 
+	if(cpu->accum == 0) flag_set(Z, cpu); 
+	if(cpu->accum & 0x80 > 0) flag_set(N, cpu); 
+	return 0; 
 }
 
 uint8_t LDX(cpu_t cpu) {
-
+	cpu->X = cpu->tmp 
+	if(cpu->X == 0) flag_set(Z, cpu); 
+	if(cpu->X & 0x80 > 0) flag_set(N, cpu); 
+	return 0; 
 }
 
 uint8_t LDY(cpu_t cpu) {
-
+	cpu->Y = cpu->tmp 
+	if(cpu->Y == 0) flag_set(Z, cpu); 
+	if(cpu->Y & 0x80 > 0) flag_set(N, cpu); 
+	return 0; 
 }
 
 uint8_t LSR(cpu_t cpu) {
+	if(cpu->tmp & 0x01 > 0) flag_set(C, cpu); 
+	flag_clr(N, cpu); 
+	uint8_t res = cpu->tmp >> 1; 
+	if(res == 0) flag_set(Z, cpu); 
+	
+	uint8_t r = cpu->code >> 4; 
+	uint8_t c = cpu->code & 0x0f; 
 
+	if(cpu->op_table[r][c]->mem_mode == &IMP)
+		cpu->accum = res; 
+	else 
+		cpu _write(cpu, cpu->cur_mem, res); 
+
+	return 0; 
 }
 
 uint8_t NOP(cpu_t cpu) {
-
+	return 0; 
 }
 
 uint8_t ORA(cpu_t cpu) {
-
+	uint8_t res = cpu->accum | cpu->tmp; 
+	if(res == 0) flag_set(Z, cpu); 
+	if(res & 0x80 > 0) flag_set(N, cpu); 
+	cpu->accum = res; 
+	return 0; 
 }
 
 uint8_t PHA(cpu_t cpu) {
-
+	cpu_stack_push(cpu, cpu->accum); 
+	return 0; 
 }
 
 uint8_t PHP(cpu_t cpu) {
-
+	flag_set(B, cpu); 
+	flag_set(U, cpu); 
+	cpu_stack_push(cpu, cpu->stat); 
+	flag_clr(B, cpu); 
+	flag_clr(U, cpu); 
+	return 0; 
 }
 
 uint8_t PLA(cpu_t cpu) {
-
+	cpu->accum = cpu_stack_pop(cpu); 
+	return 0; 	
 }
 
 uint8_t PLP(cpu_t cpu) {
-
+	cpu->stat = cpu_stack_pop(cpu); 
+	return 0; 
 }
 
 uint8_t ROL(cpu_t cpu) {
+	uint8_t r = cpu->code >> 4; 
+	uint8_t c = cpu->code & 0x0f;
 
+	if(cpu->op_table[r][c] == &IMP) {
+		if(cpu->accum & 0x80 > 0) flag_set(C, cpu); 
+		cpu->accum = cpu->accum << 1; 
+		if(flag_get(C, cpu)) cpu->accum |= 0x01; 
+		else cpu->accum &= 0xfe; 
+	} else {
+		uint8_t res = cpu->tmp; 
+		if(res & 0x80 > 0) flag_set(C, cpu); 
+		res = res << 1; 
+		if(flag_get(C, cpu)) res |= 0x01; 
+		else res &= 0xfe; 
+		cpu_write(cpu, cpu->cur_mem, res); 
+	}
+	return 0; 
 }
 
 uint8_t ROR(cpu_t cpu) {
+	uint8_t r = cpu->code >> 4; 
+	uint8_t c = cpu->code & 0x0f;
 
+	if(cpu->op_table[r][c] == &IMP) {
+		if(cpu->accum & 0x01 > 0) flag_set(C, cpu); 
+		cpu->accum = cpu->accum >> 1; 
+		if(flag_get(C, cpu)) cpu->accum |= 0x80; 
+	} else {
+		uint8_t res = cpu->tmp; 
+		if(res & 0x01 > 0) flag_set(C, cpu); 
+		res = res >> 1; 
+		if(flag_get(C, cpu)) res |= 0x80; 
+		cpu_write(cpu, cpu->cur_mem, res); 
+	}
+	return 0; 
 }
 
 uint8_t RTI(cpu_t cpu) {
-
+	cpu->stat = cpu_stack_pop(cpu); 
+	uint16_t plo = cpu_stack_pop(cpu); 
+	uint16_t phi = cpu_stack_pop(cpu); 
+	cpu->pc = (phi << 8) | plo; 
+	return 0; 
 }
 
 uint8_t RTS(cpu_t cpu) {
-
+	uint16_t plo = cpu_stack_pop(cpu); 
+	uint16_t phi = cpu_stack_pop(cpu); 
+	cpu->pc = (phi << 8) | plo; 
+	cpu->pc++; 
+	return 0; 
 }
 
 //A-M-(~C)
@@ -678,56 +791,69 @@ uint8_t SBC(cpu_t cpu) {
 }
 
 uint8_t SEC(cpu_t cpu) {
-
+	flag_set(C, cpu); 
+	return 0; 
 }
 
 uint8_t SED(cpu_t cpu) {
-
+	flag_set(D, cpu); 
+	return 0; 
 }
 
 uint8_t SEI(cpu_t cpu) {
-
+	flag_set(I, cpu); 
+	return 0; 
 }
 
 uint8_t STA(cpu_t cpu) {
-
+	cpu_stack_push(cpu, cpu->accum); 
+	return 0; 
 }
 
 uint8_t STX(cpu_t cpu) {
-
+	cpu_stack_push(cpu, cpu->X); 
+	return 0; 
 }
 
 uint8_t STY(cpu_t cpu) {
-
+	cpu_stack_push(cpu, cpu->Y); 
+	return 0; 
 }
 
 uint8_t TAX(cpu_t cpu) {
-
+	cpu->X = cpu->accum; 
+	return 0; 
 }
 
 uint8_t TAY(cpu_t cpu) {
-
+	cpu->Y = cpu->accum; 
 }
 
 uint8_t TSX(cpu_t cpu) {
-
+	cpu->X = cpu->stkpt; 
+	return 0; 
 }
 
 uint8_t TXA(cpu_t cpu) {
-
+	cpu->accum = cpu->X; 
+	return 0; 
 }
 
 uint8_t TXS(cpu_t cpu) {
-
+	cpu->stkpt = cpu->X; 
+	return 0; 
 }
 
 uint8_t TYA(cpu_t cpu) {
-
+	cpu->accum = cpu->Y; 
+	return 0; 
 }
 
 
 //the empty instruction for illegal opcodes
+//throws an error 
 uint8_t EMP(cpu_t cpu) {
-
+	fprint(stderr, "invalid opcode"); 
+	exit(EXIT_FAILURE); 
 }
 

@@ -62,6 +62,7 @@ void cpu_write(cpu_t cpu, uint16_t addr, uint8_t data);
 
 //stack push
 void cpu_stack_push(cpu_t cpu, uint8_t data); 
+void cpu_stack_pop(cpu_t cpu); 
 
 //clock
 void clock(cpu_t cpu); 
