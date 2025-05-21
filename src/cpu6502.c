@@ -15,6 +15,8 @@ cpu* cpu_new() {
 
 	result->cycles = 0; 
 	result->tmp = 0; 
+	result->code = 0; 
+	result->cur_mem = 0; 
 
 	return result; 
 }
@@ -37,6 +39,14 @@ void flag_tog(FLAGS f, cpu_t cpu) {
 	uint8_t s = cpu->stat; 
 	s ^= f; 
 	cpu->stat = s; 
+}
+
+void flag_set(FLAGS f, cpu_t cpu) {
+	cpu->stat |= f; 
+}
+
+void flag_clr(FLAGS f, cpu_t cpu) {
+	cpu->stat = cpu->stat & (~f);
 }
 
 bool flag_get(FLAGS f, cpu_t cpu) {
@@ -69,10 +79,12 @@ void cpu_stack_push(cpu_t cpu, uint8_t data) {
 //clock
 void clock(cpu_t cpu) {
 	if(cycles == 0) {
-		iinf* instr = op_table_get(cpu->op_table, cpu->pc); 
+		uint8_t op = cpu_read(cpu, cpu->pc, true); 
+		iinf* instr = op_table_get(cpu->op_table, op); 
 		int e1 = (*instr->mem_mode)(); //could be bad syntax
 		int e2 = (*instr->inst)(); 
 		cpu->cycles = instr->cycles + e1 + e2; 
+		cpu->code = op; 
 	} else {
 		cpu->cycles--; 
 	}
@@ -94,6 +106,8 @@ void IRQ(cput_t cpu) {
 		uint16_t nhi = (uint16_t)cpu_read(cpu, 0xfffa + 1); 
 		cpu->pc = nlo | (nhi << 8); 
 		cpu->cycles = 7; 
+		cpu->code = 0; 
+		cpu->cur_mem = 0; 
 	}
 }
 
@@ -111,6 +125,8 @@ void NMI(cpu_t cpu) {
 	uint16_t nhi = (uint16_t)cpu_read(cpu, 0xfffa + 1); 
 	cpu->pc = nlo | (nhi << 8); 
 	cpu->cycles = 8; 
+	cpu->code = 0; 
+	cpu->cur_mem = 0; 
 }
 
 //reset
@@ -125,6 +141,8 @@ void RES(cpu_t cpu) {
 	cpu->stkpt = 0x01ff; 
 	cpu->stat = 0; 
 	cpu->tmp = 0; 
+	cpu->code = 0; 
+	cpu->cur_mem = 0; 
 
 
 	cpu->cycles=8; 
@@ -144,11 +162,14 @@ void RES(cpu_t cpu) {
 
 uint8_t IMP(cpu_t cpu) {
 	cpu->tmp = 0x00; 
+	cpu->mem = 0x00; 
 	return 0; 
 }
 
 uint8_t IMD(cpu_t cpu) {
 	cpu->tmp = cpu_read(cpu, cpu->pc+1, true); 
+	cpu->mem = cpu->pc+1; 
+	cpu->pc++; 
 	return 0; 
 }
 
@@ -158,6 +179,8 @@ uint8_t ABS(cpu_t cpu) {
 
 	uint16_t addr = (hi << 8) | lo; 
 	cpu->tmp = cpu_read(cpu, addr, true); 
+	cpu->cur_mem = addr; 
+	cpu->pc += 2; 
 	return 0; 
 }
 
@@ -166,6 +189,8 @@ uint8_t ZPZ(cpu_t cpu) {
 
 	uint16_t addr = 0x0000 | lo; 
 	cpu->tmp = cpu_read(cpu, addr, true); 
+	cpu->cur_mem = addr; 
+	cpu->pc++; 
 	return 0; 
 }
 
@@ -181,7 +206,9 @@ uint8_t ABX(cpu_t cpu) {
 
 	uint16_t addr = (hi << 8) + lo; 
 	cpu->tmp = cpu_read(cpu, addr, true); 
+	cpu->cur_mem = addr; 
 
+	cpu->pc += 2; 
 	return extra; 
 }
 
@@ -197,7 +224,9 @@ uint8_t ABY(cpu_t cpu) {
 
 	uint16_t addr = (hi << 8) + lo; 
 	cpu->tmp = cpu_read(cpu, addr, true); 
+	cpu->cur_mem = addr; 
 
+	cpu->pc += 2; 
 	return extra; 
 }
 
@@ -208,6 +237,8 @@ uint8_t ZPX(cpu_t cpu) {
 
 	uint16_t addr = 0x00ff & lo; 
 	cpu->tmp = cpu_read(cpu, addr, true); 
+	cpu->cur_mem = addr; 
+	cpu->pc++; 
 	return 0; 
 }
 
@@ -218,6 +249,8 @@ uint8_t ZPY(cpu_t cpu) {
 
 	uint16_t addr = 0x00ff & lo; 
 	cpu->tmp = cpu_read(cpu, addr, true); 
+	cpu->cur_mem = addr; 
+	cpu->pc++; 
 	return 0; 
 }
 
@@ -235,6 +268,8 @@ uint8_t IND(cpu_t cpu) {
 	uint16_t addr = (hi << 8) | lo; 
 
 	cpu->tmp = cpu_read(cpu, addr, true); 
+	cpu->cur_mem = addr; 
+	cpu->pc += 2; 
 	return 0; 
 }
 
@@ -245,7 +280,9 @@ uint8_t REL(cpu_t cpu) {
 		exit(EXIT_FAILURE); 
 	}
 	cpu->tmp = ofs; 
+	cpu->cur_mem = pc+1; 
 
+	cpu->pc++; 
 	return 0; 
 }
 
@@ -259,22 +296,31 @@ uint8_t IZX(cpu_t cpu) {
 
 	uint16_t addr = (hi << 8) | lo; 
 	cpu->tmp = cpu_read(cpu, addr, true); 
+	cpu->cur_mem = addr; 
 	
+	cpu->pc++; 
 	return 0; 
 }
 
+//has potential to change page and add extra clock cycle
 uint8_t IZY(cpu_t cpu) {
 	uint16_t rlo = (uint16_t)cpu_read(cpu, cpu->pc+1, true); 
-	rlo = (rlo + cpu->Y) % 0xff;  
 
 	uint16_t ref = 0x00FF & rlo; 
 	uint16_t lo = cpu_read(cpu, ref, true); 
+	lo = lo + cpu->Y; 
+	uint8_t extra = 0; 
+	if(lo > 0x00ff) extra = 1;  
+
+	//accounts for overflow could be incorrect
 	uint16_t hi = cpu_read(cpu, (ref+1 % 0xff), true); 
 
-	uint16_t addr = (hi << 8) | lo; 
+	uint16_t addr = (hi << 8) + lo; 
 	cpu->tmp = cpu_read(cpu, addr, true); 
+	cpu->cur_mem = addr; 
 	
-	return 0; 
+	cpu->pc++; 
+	return extra; 
 }
 
 //define instruction functions
@@ -284,96 +330,246 @@ uint8_t IZY(cpu_t cpu) {
  * the position will dictate clock cycles and such
  */
 
+//overflow formula accum ^ result & ~(acuum ^ data)
+//A+M+C
 uint8_t ADC(cpu_t cpu) {
+	uint8_t car =  flag_get(C, cpu) ? 1 : 0; 
+	uint16_t res = cpu->accum + cpu->tmp + car; 	
 
+	flag_clr(C, cpu); 
+	if(res > 0xff) flag_set(C, cpu)
+	if((res & 0x80) > 0) flag_set(N, cpu); 
+	if(res == 0) flag_set(Z, cpu); 
+
+	//overflow
+	uint8_t as = cpu->accum & 0x80;
+	uint8_t ds = cpu->tmp & 0x80;  
+	uint8_t rs = (uint8_t)(res & 0x0080);   
+
+	if(( (as ^ ar) & ~(as ^ ds) ) > 0) flag_set(V, cpu); 
+
+	cpu->accum = res; 
+	//for extra clock cycle
+	pc
+	return 0; 
 }
 
 uint8_t AND(cpu_t cpu); {
+	uint8_t res = cpu->tmp & cpu->accum; 
+	if(res == 0) flag_set(Z, cpu); 
+	if(0x80 & res > 0) flag_set(N, cpu); 
 
+	cpu->accum = res; 
+	return 0; 
 }
 
 uint8_t ASL(cpu_t cpu) {
+	if(cpu->tmp & 0x80 > 0) flag_set(C, cpu); 
+	uint8_t res = cpu->temp << 1; 
+	if(res == 0) flag_set(Z, cpu); 
+	if(res & 0x80 > 0) flag_set(N, cpu); 
 
+	if(cpu->op_table[code]->mem_mode == &IMP) {
+		cpu->accum = res; 
+	} else {
+		cpu_write(cpu, cpu->cur_mem, res); 
+	}
+	return 0; 
 }
 
 uint8_t BCC(cpu_t cpu) {
-
+	if(!flag_get(C, cpu)) {
+		//offset is signed but this depends on interpretation
+		//not +-
+		uint16_t addr = cpu->pc + cpu->tmp; 
+		cpu->pc = addr; 
+		if((0xff00 & cpu->pc) != (addr & 0x0ff))
+			return 2; 
+		else 
+			return 1; 
+	}
+	return 0; 
 }
 
 uint8_t BCS(cpu_t cpu) {
-
+	if(flag_get(C, cpu)) {
+		uint16_t addr = cpu->pc + cpu->tmp; 
+		cpu->pc = addr; 
+		if((0xff00 & cpu->pc) != (addr & 0x0ff))
+			return 2; 
+		else 
+			return 1; 
+	}
+	return 0; 
 }
 
 uint8_t BEQ(cpu_t cpu) {
-
+	if(flag_get(Z, cpu)) {
+		uint16_t addr = cpu->pc + cpu->tmp; 
+		cpu->pc = addr; 
+		if((0xff00 & cpu->pc) != (addr & 0x0ff))
+			return 2; 
+		else 
+			return 1; 
+	}
+	return 0; 
 }
 
 uint8_t BIT(cpu_t cpu) {
-
+	if(cpu->tmp & 0x80 > 0) flag_set(N, cpu); 
+	if(cpu->tmp & 0x40 > 0) flag_set(V, cpu); 
+	if(cpu->tmp & cpu->accum == 0) flag_set(Z, cpu); 
+	return 0; 
 }
 
 uint8_t BMI(cpu_t cpu) {
+	if(flag_get(N, cpu)) {
+		uint16_t addr = cpu->pc + cpu->tmp; 
+		cpu->pc = addr; 
+		if((0xff00 & cpu->pc) != (addr & 0x0ff))
+			return 2; 
+		else 
+			return 1; 
+	}
+	return 0; 
 
 }
 
 uint8_t BNE(cpu_t cpu) {
-
+	if(!flag_get(Z, cpu)) {
+		uint16_t addr = cpu->pc + cpu->tmp; 
+		cpu->pc = addr; 
+		if((0xff00 & cpu->pc) != (addr & 0x0ff))
+			return 2; 
+		else 
+			return 1; 
+	}
+	return 0; 
 }
 
 uint8_t BPL(cpu_t cpu) {
-
+	if(!flag_get(N, cpu)) {
+		uint16_t addr = cpu->pc + cpu->tmp; 
+		cpu->pc = addr; 
+		if((0xff00 & cpu->pc) != (addr & 0x0ff))
+			return 2; 
+		else 
+			return 1; 
+	}
+	return 0; 
 }
 
+//this could be wrong
 uint8_t BRK(cpu_t cpu) {
+	pc++; 
 
+	flag_set(I, cpu); 
+	flag_set(B, cpu); 
+	
+	uint8_t plo = (uint8_t)(cpu->pc & 0x00ff); 
+	uint8_t phi = (uint8_t)(cpu->pc >> 8); 
+	cpu_stack_push(cpu, phi); 
+	cpu_stack_push(cpu, plo); 
+	cpu_stack_push(cpu, cpu->stat); 
+	
+
+	uint16_t rlo = (uint16_t)cpu_read(cpu, 0xfffe);
+	uint16_t rhi = (uint16_t)cpu_read(cpu, 0xffff);  
+	cpu->pc = (rhi << 8) | rlo; 
+	return 0; 
 }
 
 uint8_t BVC(cpu_t cpu) {
-
+	if(!flag_get(V, cpu)) {
+		uint16_t addr = cpu->pc + cpu->tmp; 
+		cpu->pc = addr; 
+		if((0xff00 & cpu->pc) != (addr & 0x0ff))
+			return 2; 
+		else 
+			return 1; 
+	}
+	return 0; 
 }
 
 uint8_t BVS(cpu_t cpu) {
-
+	if(flag_get(V, cpu)) {
+		uint16_t addr = cpu->pc + cpu->tmp; 
+		cpu->pc = addr; 
+		if((0xff00 & cpu->pc) != (addr & 0x0ff))
+			return 2; 
+		else 
+			return 1; 
+	}
+	return 0; 
 }
 
 uint8_t CLC(cpu_t cpu) {
-
+	flag_clr(C, cpu); 
+	return 0; 
 }
 
 uint8_t CLD(cpu_t cpu) {
-
+	flag_clr(D, cpu); 
+	return 0; 
 }
 
 uint8_t CLI(cpu_t cpu) {
-
+	flag_clr(I, cpu); 
+	return 0; 
 }
 
 uint8_t CLV(cpu_t cpu) {
-
+	flag_clr(V, cpu); 
+	return 0; 
 }
 
 uint8_t CMP(cpu_t cpu) {
+	uint16_t cmp = cpu->accum - cpu->tmp; 
 
+	if(cmp == 0) flag_set(Z, cpu); 
+	if(0x0080 & cmp > 0) flag_set(N, cpu); 
+	if(0xFF00 & cmp > 0) flag_set(C, cpu); 
+	return 0; 
 }
 
 uint8_t CPX(cpu_t cpu) {
+	uint16_t cmp = cpu->X - cpu->tmp; 
 
+	if(cmp == 0) flag_set(Z, cpu); 
+	if(0x0080 & cmp > 0) flag_set(N, cpu); 
+	if(0xFF00 & cmp > 0) flag_set(C, cpu); 
+	return 0; 
 }
 
 uint8_t CPY(cpu_t cpu) {
+	uint16_t cmp = cpu->Y - cpu->tmp; 
 
+	if(cmp == 0) flag_set(Z, cpu); 
+	if(0x0080 & cmp > 0) flag_set(N, cpu); 
+	if(0xFF00 & cmp > 0) flag_set(C, cpu); 
+	return 0; 
 }
 
 uint8_t DEC(cpu_t cpu) {
-
+	uint8_t res = cpu->tmp--; 
+	if(res == 0) flag_set(Z, cpu); 
+	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	cpu_write(cpu, cpu->cur_mem, res); 
+	return 0; 
 }
 
 uint8_t DEX(cpu_t cpu) {
-
+	uint8_t res = cpu->X--; 
+	if(res == 0) flag_set(Z, cpu); 
+	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	return 0; 
 }
 
 uint8_t DEY(cpu_t cpu) {
-
+	uint8_t res = cpu->Y--; 
+	if(res == 0) flag_set(Z, cpu); 
+	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	return 0; 
 }
 
 uint8_t EOR(cpu_t cpu) {
@@ -456,8 +652,29 @@ uint8_t RTS(cpu_t cpu) {
 
 }
 
+//A-M-(~C)
+//invert data to use add formula
 uint8_t SBC(cpu_t cpu) {
+	uint8_t car =  flag_get(C, cpu) ? 1 : 0; 
+	//+1 for twos complement
+	uint8_t dat = ~(cpu->tmp) + 1;  
+	uint16_t res = cpu->accum + dat + car; 	
 
+	flag_clr(C, cpu); 
+	if(res > 0xff) flag_set(C, cpu)
+	if((res & 0x80) > 0) flag_set(N, cpu); 
+	if(res == 0) flag_set(Z, cpu); 
+
+	//overflow
+	uint8_t as = cpu->accum & 0x80;
+	uint8_t ds = dat & 0x80;  
+	uint8_t rs = (uint8_t)(res & 0x0080); 
+
+	if(( (as ^ ar) & ~(as ^ ds) ) > 0) flag_set(V, cpu); 
+
+	cpu->accum = res; 
+	//for extra clock cycle
+	return 0; 
 }
 
 uint8_t SEC(cpu_t cpu) {

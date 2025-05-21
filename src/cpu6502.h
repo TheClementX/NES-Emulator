@@ -25,6 +25,8 @@ struct cpu {
 
 	uint8_t cycles; //to store cycle count 
 	uint8_t tmp; //to store mem values
+	uint8_t code; //current opcode value
+	uint16_t cur_mem; //location of current memory lookup 
 }; 
 typedef struct cpu* cpu_t; 
 
@@ -48,6 +50,8 @@ void cpu_bind(cpu_t cpu, bus_t bus);
 
 //flag functions
 void flag_tog(FLAGS f, cpu_t cpu); 
+void flag_set(FLAGS f, cpu_t cpu); 
+void flag_clr(FLAGS f, cpu_t cpu); 
 bool flag_get(FLAGS f, cpu_t cpu); 
 
 //read and write functions
