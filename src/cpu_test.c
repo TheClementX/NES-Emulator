@@ -9,4 +9,23 @@
 	 * make sure to check clock cycles
 	 * program counters 
 	 * any other things that can be messed up per instruction
- * */
+* */
+
+#include "bus.h" 
+#include "cpu.h"
+#include "load.h" 
+#include <unistd.h>
+
+int main(int argc, char* argv[]) {
+	char* pg = argv[1]; 
+	bus_t bus = sys_init(); 
+	pg_load(bus, pg); 
+
+	while(true) {
+		uint8_t code = clock(bus->cpu); 
+		if(code == 0xff) 
+			break; 
+		usleep(1); 
+	}
+	return 0; 
+}

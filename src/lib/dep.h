@@ -1,12 +1,12 @@
 #ifndef DEP_H
-#def DEP_H
+#define DEP_H
 
 #include <stdlib.h> 
 #include <stdint.h> 
 #include "contracts.h" 
 #include <stdbool.h> 
-#include <string>
-#include <math> 
+#include <string.h>
+#include <math.h> 
 
 #endif
 

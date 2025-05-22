@@ -1,3 +1,5 @@
+#include "cpu6502.h" 
+
 typedef struct cpu cpu; 
 
 cpu* cpu_new() {	
@@ -102,6 +104,7 @@ void clock(cpu_t cpu) {
 	} else {
 		cpu->cycles--; 
 	}
+	return cpu->code; 
 }
 
 //maskable interrupt
@@ -135,8 +138,8 @@ void NMI(cpu_t cpu) {
 
 	//could be wrong integer logic 
 	cpu_stack_push(cpu, cpu->stat | (1<<4)); 
-	uint16_t nlo = (uint16_t)cpu_read(cpu, 0xfffa); 
-	uint16_t nhi = (uint16_t)cpu_read(cpu, 0xfffa + 1); 
+	uint16_t nlo = (uint16_t)cpu_read(cpu, 0xfffe); 
+	uint16_t nhi = (uint16_t)cpu_read(cpu, 0xfffe + 1); 
 	cpu->pc = nlo | (nhi << 8); 
 	cpu->cycles = 8; 
 	cpu->code = 0; 

@@ -17,7 +17,7 @@ struct bus {
 }; 
 typedef struct bus* bus_t; 
 
-bus_t bus_new(); 
+bus_t bus_new(cpu_t cpu); 
 
 uint8_t bus_read(bus_t bus, uint16_t addr, bool read_only); 
 
