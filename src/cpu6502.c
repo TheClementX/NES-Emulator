@@ -1,4 +1,5 @@
 #include "cpu6502.h" 
+#include <stdio.h>
 
 typedef struct cpu cpu; 
 
@@ -13,7 +14,6 @@ cpu* cpu_new() {
 	result->stat = 0; 
 	
 	result->bus = NULL; 
-	result->op_table = op_table_new(); 
 
 	result->cycles = 0; 
 	result->tmp = 0; 
@@ -24,14 +24,12 @@ cpu* cpu_new() {
 }
 
 void cpu_free(cpu_t cpu) {
-	op_table_free(cpu->op_table); 
 	free(cpu); 
 }
 
-void cpu_bind(cpu_ cpu, bus_t bus) {
-	if(bus->cpu != cpu) {
+void cpu_bind(cpu_t cpu, bus_t bus) {
+	if(bus->cpu != cpu) 
 		fprintf(stderr, "cpu does not belong to bus"); 
-		exit(EXIT_FAILURE); 
 
 	cpu->bus = bus; 
 }
@@ -58,7 +56,7 @@ bool flag_get(FLAGS f, cpu_t cpu) {
 
 //read and write functions
 uint8_t cpu_read(cpu_t cpu, uint16_t addr, bool read_only) {
-	return bus_read(cpu->bus, addr); 
+	return bus_read(cpu->bus, addr, true); 
 }
 
 void cpu_write(cpu_t cpu, uint16_t addr, uint8_t data) {
@@ -79,36 +77,20 @@ void cpu_stack_push(cpu_t cpu, uint8_t data) {
 	cpu->stkpt--; 
 }
 
-void cpu_stack_pop(cpu_t cpu) {
+uint8_t cpu_stack_pop(cpu_t cpu) {
 	if(cpu->stkpt == 0x01ff) {
 		fprintf(stderr, "pop from an empty stack"); 
 		exit(EXIT_FAILURE); 
 	}
 
-	cpu->sktpt++; 
-	uint8_t result = cpu_read(cpu, cpu->stkpt); 
+	cpu->stkpt++; 
+	uint8_t result = cpu_read(cpu, cpu->stkpt, true); 
 	cpu_write(cpu, cpu->stkpt, 0x00); 
 	return result; 
 }
 
-//clock
-void clock(cpu_t cpu) {
-	if(cycles == 0) {
-		uint8_t op = cpu_read(cpu, cpu->pc, true); 
-		cpu->pc++; 
-		iinf* instr = op_table_get(cpu->op_table, op); 
-		int e1 = (*instr->mem_mode)(); //could be bad syntax
-		int e2 = (*instr->inst)(); 
-		cpu->cycles = instr->cycles + e1 + e2; 
-		cpu->code = op; 
-	} else {
-		cpu->cycles--; 
-	}
-	return cpu->code; 
-}
-
 //maskable interrupt
-void IRQ(cput_t cpu) {
+void IRQ(cpu_t cpu) {
 	FLAGS flag = I; 
 	if(!flag_get(flag, cpu)) {
 		uint8_t hi = (uint8_t)((cpu->stkpt & 0xff00) >> 4); 
@@ -119,8 +101,8 @@ void IRQ(cput_t cpu) {
 
 		//could be wrong integer logic 
 		cpu_stack_push(cpu, cpu->stat | (1<<4)); 
-		uint16_t nlo = (uint16_t)cpu_read(cpu, 0xfffa); 
-		uint16_t nhi = (uint16_t)cpu_read(cpu, 0xfffa + 1); 
+		uint16_t nlo = (uint16_t)cpu_read(cpu, 0xfffa, true); 
+		uint16_t nhi = (uint16_t)cpu_read(cpu, 0xfffa + 1, true); 
 		cpu->pc = nlo | (nhi << 8); 
 		cpu->cycles = 7; 
 		cpu->code = 0; 
@@ -138,8 +120,8 @@ void NMI(cpu_t cpu) {
 
 	//could be wrong integer logic 
 	cpu_stack_push(cpu, cpu->stat | (1<<4)); 
-	uint16_t nlo = (uint16_t)cpu_read(cpu, 0xfffe); 
-	uint16_t nhi = (uint16_t)cpu_read(cpu, 0xfffe + 1); 
+	uint16_t nlo = (uint16_t)cpu_read(cpu, 0xfffe, true); 
+	uint16_t nhi = (uint16_t)cpu_read(cpu, 0xfffe + 1, true); 
 	cpu->pc = nlo | (nhi << 8); 
 	cpu->cycles = 8; 
 	cpu->code = 0; 
@@ -148,8 +130,8 @@ void NMI(cpu_t cpu) {
 
 //reset
 void RES(cpu_t cpu) {
-	uint16_t nlo = (uint16_t)cpu_read(cpu, 0xfffc); 
-	uint16_t nhi = (uint16_t)cpu_read(cpu, 0xfffc + 1); 
+	uint16_t nlo = (uint16_t)cpu_read(cpu, 0xfffc, true); 
+	uint16_t nhi = (uint16_t)cpu_read(cpu, 0xfffc + 1, true); 
 	cpu->pc = nlo | (nhi << 8); 
 
 	cpu->accum = 0; 
@@ -179,13 +161,12 @@ void RES(cpu_t cpu) {
 
 uint8_t IMP(cpu_t cpu) {
 	cpu->tmp = 0x00; 
-	cpu->mem = 0x00; 
 	return 0; 
 }
 
 uint8_t IMD(cpu_t cpu) {
 	cpu->tmp = cpu_read(cpu, cpu->pc+1, true); 
-	cpu->mem = cpu->pc+1; 
+	cpu->cur_mem = cpu->pc+1; 
 	cpu->pc++; 
 	return 0; 
 }
@@ -291,13 +272,13 @@ uint8_t IND(cpu_t cpu) {
 }
 
 uint8_t REL(cpu_t cpu) {
-	int8_t ofs = cpu_read(cpu, pc+1, true); 
+	int8_t ofs = cpu_read(cpu, cpu->pc+1, true); 
 	if(ofs > 127 || ofs < -128) {
 		fprintf(stderr, "invalid relative addresss"); 
 		exit(EXIT_FAILURE); 
 	}
 	cpu->tmp = ofs; 
-	cpu->cur_mem = pc+1; 
+	cpu->cur_mem = cpu->pc+1; 
 
 	cpu->pc++; 
 	return 0; 
@@ -354,7 +335,7 @@ uint8_t ADC(cpu_t cpu) {
 	uint16_t res = cpu->accum + cpu->tmp + car; 	
 
 	flag_clr(C, cpu); 
-	if(res > 0xff) flag_set(C, cpu)
+	if(res > 0xff) flag_set(C, cpu);
 	if((res & 0x80) > 0) flag_set(N, cpu); 
 	if(res == 0) flag_set(Z, cpu); 
 
@@ -363,33 +344,29 @@ uint8_t ADC(cpu_t cpu) {
 	uint8_t ds = cpu->tmp & 0x80;  
 	uint8_t rs = (uint8_t)(res & 0x0080);   
 
-	if(( (as ^ ar) & ~(as ^ ds) ) > 0) flag_set(V, cpu); 
+	if(( (as ^ rs) & ~(as ^ ds) ) > 0) flag_set(V, cpu); 
 
 	cpu->accum = res; 
 	//for extra clock cycle
-	pc
 	return 0; 
 }
 
-uint8_t AND(cpu_t cpu); {
+uint8_t AND(cpu_t cpu) {
 	uint8_t res = cpu->tmp & cpu->accum; 
 	if(res == 0) flag_set(Z, cpu); 
-	if(0x80 & res > 0) flag_set(N, cpu); 
+	if((0x80 & res) > 0) flag_set(N, cpu); 
 
 	cpu->accum = res; 
 	return 0; 
 }
 
 uint8_t ASL(cpu_t cpu) {
-	if(cpu->tmp & 0x80 > 0) flag_set(C, cpu); 
-	uint8_t res = cpu->temp << 1; 
+	if((cpu->tmp & 0x80) > 0) flag_set(C, cpu); 
+	uint8_t res = cpu->tmp << 1; 
 	if(res == 0) flag_set(Z, cpu); 
-	if(res & 0x80 > 0) flag_set(N, cpu); 
+	if((res & 0x80) > 0) flag_set(N, cpu); 
 
-	uint8_t r = cpu->code >> 4; 
-	uint8_t c = cpu->code & 0x0f; 
-
-	if(cpu->op_table[r][c]->mem_mode == &IMP) {
+	if(cpu->imp) {
 		cpu->accum = res; 
 	} else {
 		cpu_write(cpu, cpu->cur_mem, res); 
@@ -436,9 +413,9 @@ uint8_t BEQ(cpu_t cpu) {
 }
 
 uint8_t BIT(cpu_t cpu) {
-	if(cpu->tmp & 0x80 > 0) flag_set(N, cpu); 
-	if(cpu->tmp & 0x40 > 0) flag_set(V, cpu); 
-	if(cpu->tmp & cpu->accum == 0) flag_set(Z, cpu); 
+	if((cpu->tmp & 0x80) > 0) flag_set(N, cpu); 
+	if((cpu->tmp & 0x40) > 0) flag_set(V, cpu); 
+	if((cpu->tmp & cpu->accum) == 0) flag_set(Z, cpu); 
 	return 0; 
 }
 
@@ -481,7 +458,7 @@ uint8_t BPL(cpu_t cpu) {
 
 //this could be wrong
 uint8_t BRK(cpu_t cpu) {
-	pc++; 
+	cpu->pc++; 
 
 	flag_set(I, cpu); 
 	flag_set(B, cpu); 
@@ -493,8 +470,8 @@ uint8_t BRK(cpu_t cpu) {
 	cpu_stack_push(cpu, cpu->stat); 
 	
 
-	uint16_t rlo = (uint16_t)cpu_read(cpu, 0xfffe);
-	uint16_t rhi = (uint16_t)cpu_read(cpu, 0xffff);  
+	uint16_t rlo = (uint16_t)cpu_read(cpu, 0xfffe, true);
+	uint16_t rhi = (uint16_t)cpu_read(cpu, 0xffff, true);  
 	cpu->pc = (rhi << 8) | rlo; 
 	return 0; 
 }
@@ -547,8 +524,8 @@ uint8_t CMP(cpu_t cpu) {
 	uint16_t cmp = cpu->accum - cpu->tmp; 
 
 	if(cmp == 0) flag_set(Z, cpu); 
-	if(0x0080 & cmp > 0) flag_set(N, cpu); 
-	if(0xFF00 & cmp > 0) flag_set(C, cpu); 
+	if((0x0080 & cmp) > 0) flag_set(N, cpu); 
+	if((0xFF00 & cmp) > 0) flag_set(C, cpu); 
 	return 0; 
 }
 
@@ -556,8 +533,8 @@ uint8_t CPX(cpu_t cpu) {
 	uint16_t cmp = cpu->X - cpu->tmp; 
 
 	if(cmp == 0) flag_set(Z, cpu); 
-	if(0x0080 & cmp > 0) flag_set(N, cpu); 
-	if(0xFF00 & cmp > 0) flag_set(C, cpu); 
+	if((0x0080 & cmp) > 0) flag_set(N, cpu); 
+	if((0xFF00 & cmp) > 0) flag_set(C, cpu); 
 	return 0; 
 }
 
@@ -565,15 +542,15 @@ uint8_t CPY(cpu_t cpu) {
 	uint16_t cmp = cpu->Y - cpu->tmp; 
 
 	if(cmp == 0) flag_set(Z, cpu); 
-	if(0x0080 & cmp > 0) flag_set(N, cpu); 
-	if(0xFF00 & cmp > 0) flag_set(C, cpu); 
+	if((0x0080 & cmp) > 0) flag_set(N, cpu); 
+	if((0xFF00 & cmp) > 0) flag_set(C, cpu); 
 	return 0; 
 }
 
 uint8_t DEC(cpu_t cpu) {
 	uint8_t res = cpu->tmp--; 
 	if(res == 0) flag_set(Z, cpu); 
-	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	if((res & 0x80) > 0) flag_set(Z, cpu); 
 	cpu_write(cpu, cpu->cur_mem, res); 
 	return 0; 
 }
@@ -581,21 +558,21 @@ uint8_t DEC(cpu_t cpu) {
 uint8_t DEX(cpu_t cpu) {
 	uint8_t res = cpu->X--; 
 	if(res == 0) flag_set(Z, cpu); 
-	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	if((res & 0x80) > 0) flag_set(Z, cpu); 
 	return 0; 
 }
 
 uint8_t DEY(cpu_t cpu) {
 	uint8_t res = cpu->Y--; 
 	if(res == 0) flag_set(Z, cpu); 
-	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	if((res & 0x80) > 0) flag_set(Z, cpu); 
 	return 0; 
 }
 
 uint8_t EOR(cpu_t cpu) {
 	uint8_t res = cpu->tmp ^ cpu->accum; 
 	if(res == 0) flag_set(Z, cpu); 
-	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	if((res & 0x80) > 0) flag_set(Z, cpu); 
 	cpu->accum = res; 
 	return 0; 
 }
@@ -603,7 +580,7 @@ uint8_t EOR(cpu_t cpu) {
 uint8_t INC(cpu_t cpu) {
 	uint8_t res = cpu->tmp++; 
 	if(res == 0) flag_set(Z, cpu); 
-	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	if((res & 0x80) > 0) flag_set(Z, cpu); 
 	cpu_write(cpu, cpu->cur_mem, res); 	
 	return 0; 
 }
@@ -611,14 +588,14 @@ uint8_t INC(cpu_t cpu) {
 uint8_t INX(cpu_t cpu) {
 	uint8_t res = cpu->X++; 
 	if(res == 0) flag_set(Z, cpu); 
-	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	if((res & 0x80) > 0) flag_set(Z, cpu); 
 	return 0; 
 }
 
 uint8_t INY(cpu_t cpu) {
 	uint8_t res = cpu->Y++; 
 	if(res == 0) flag_set(Z, cpu); 
-	if(res & 0x80 > 0) flag_set(Z, cpu); 
+	if((res & 0x80) > 0) flag_set(Z, cpu); 
 	return 0; 
 }
 
@@ -641,39 +618,36 @@ uint8_t JSR(cpu_t cpu) {
 }
 
 uint8_t LDA(cpu_t cpu) {
-	cpu->accum = cpu->tmp 
+	cpu->accum = cpu->tmp;
 	if(cpu->accum == 0) flag_set(Z, cpu); 
-	if(cpu->accum & 0x80 > 0) flag_set(N, cpu); 
+	if((cpu->accum & 0x80) > 0) flag_set(N, cpu); 
 	return 0; 
 }
 
 uint8_t LDX(cpu_t cpu) {
-	cpu->X = cpu->tmp 
+	cpu->X = cpu->tmp;
 	if(cpu->X == 0) flag_set(Z, cpu); 
-	if(cpu->X & 0x80 > 0) flag_set(N, cpu); 
+	if((cpu->X & 0x80) > 0) flag_set(N, cpu); 
 	return 0; 
 }
 
 uint8_t LDY(cpu_t cpu) {
-	cpu->Y = cpu->tmp 
+	cpu->Y = cpu->tmp;
 	if(cpu->Y == 0) flag_set(Z, cpu); 
-	if(cpu->Y & 0x80 > 0) flag_set(N, cpu); 
+	if((cpu->Y & 0x80) > 0) flag_set(N, cpu); 
 	return 0; 
 }
 
 uint8_t LSR(cpu_t cpu) {
-	if(cpu->tmp & 0x01 > 0) flag_set(C, cpu); 
+	if((cpu->tmp & 0x01) > 0) flag_set(C, cpu); 
 	flag_clr(N, cpu); 
 	uint8_t res = cpu->tmp >> 1; 
 	if(res == 0) flag_set(Z, cpu); 
-	
-	uint8_t r = cpu->code >> 4; 
-	uint8_t c = cpu->code & 0x0f; 
 
-	if(cpu->op_table[r][c]->mem_mode == &IMP)
+	if(cpu->imp)
 		cpu->accum = res; 
 	else 
-		cpu _write(cpu, cpu->cur_mem, res); 
+		cpu_write(cpu, cpu->cur_mem, res); 
 
 	return 0; 
 }
@@ -685,7 +659,7 @@ uint8_t NOP(cpu_t cpu) {
 uint8_t ORA(cpu_t cpu) {
 	uint8_t res = cpu->accum | cpu->tmp; 
 	if(res == 0) flag_set(Z, cpu); 
-	if(res & 0x80 > 0) flag_set(N, cpu); 
+	if((res & 0x80) > 0) flag_set(N, cpu); 
 	cpu->accum = res; 
 	return 0; 
 }
@@ -715,17 +689,14 @@ uint8_t PLP(cpu_t cpu) {
 }
 
 uint8_t ROL(cpu_t cpu) {
-	uint8_t r = cpu->code >> 4; 
-	uint8_t c = cpu->code & 0x0f;
-
-	if(cpu->op_table[r][c] == &IMP) {
-		if(cpu->accum & 0x80 > 0) flag_set(C, cpu); 
+	if(cpu->imp) {
+		if((cpu->accum & 0x80) > 0) flag_set(C, cpu); 
 		cpu->accum = cpu->accum << 1; 
 		if(flag_get(C, cpu)) cpu->accum |= 0x01; 
 		else cpu->accum &= 0xfe; 
 	} else {
 		uint8_t res = cpu->tmp; 
-		if(res & 0x80 > 0) flag_set(C, cpu); 
+		if((res & 0x80) > 0) flag_set(C, cpu); 
 		res = res << 1; 
 		if(flag_get(C, cpu)) res |= 0x01; 
 		else res &= 0xfe; 
@@ -735,16 +706,13 @@ uint8_t ROL(cpu_t cpu) {
 }
 
 uint8_t ROR(cpu_t cpu) {
-	uint8_t r = cpu->code >> 4; 
-	uint8_t c = cpu->code & 0x0f;
-
-	if(cpu->op_table[r][c] == &IMP) {
-		if(cpu->accum & 0x01 > 0) flag_set(C, cpu); 
+	if(cpu->imp) {
+		if((cpu->accum & 0x01) > 0) flag_set(C, cpu); 
 		cpu->accum = cpu->accum >> 1; 
 		if(flag_get(C, cpu)) cpu->accum |= 0x80; 
 	} else {
 		uint8_t res = cpu->tmp; 
-		if(res & 0x01 > 0) flag_set(C, cpu); 
+		if((res & 0x01) > 0) flag_set(C, cpu); 
 		res = res >> 1; 
 		if(flag_get(C, cpu)) res |= 0x80; 
 		cpu_write(cpu, cpu->cur_mem, res); 
@@ -777,7 +745,7 @@ uint8_t SBC(cpu_t cpu) {
 	uint16_t res = cpu->accum + dat + car; 	
 
 	flag_clr(C, cpu); 
-	if(res > 0xff) flag_set(C, cpu)
+	if(res > 0xff) flag_set(C, cpu); 
 	if((res & 0x80) > 0) flag_set(N, cpu); 
 	if(res == 0) flag_set(Z, cpu); 
 
@@ -786,7 +754,7 @@ uint8_t SBC(cpu_t cpu) {
 	uint8_t ds = dat & 0x80;  
 	uint8_t rs = (uint8_t)(res & 0x0080); 
 
-	if(( (as ^ ar) & ~(as ^ ds) ) > 0) flag_set(V, cpu); 
+	if(( (as ^ rs) & ~(as ^ ds) ) > 0) flag_set(V, cpu); 
 
 	cpu->accum = res; 
 	//for extra clock cycle
@@ -830,6 +798,7 @@ uint8_t TAX(cpu_t cpu) {
 
 uint8_t TAY(cpu_t cpu) {
 	cpu->Y = cpu->accum; 
+	return 0; 
 }
 
 uint8_t TSX(cpu_t cpu) {
@@ -856,7 +825,7 @@ uint8_t TYA(cpu_t cpu) {
 //the empty instruction for illegal opcodes
 //throws an error 
 uint8_t EMP(cpu_t cpu) {
-	fprint(stderr, "invalid opcode"); 
-	exit(EXIT_FAILURE); 
+	fprintf(stderr, "emp opcode"); 
+	return 0; 
 }
 

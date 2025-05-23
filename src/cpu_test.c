@@ -11,9 +11,7 @@
 	 * any other things that can be messed up per instruction
 * */
 
-#include "bus.h" 
-#include "cpu.h"
-#include "load.h" 
+#include "sys.h" 
 #include <unistd.h>
 
 int main(int argc, char* argv[]) {
@@ -22,10 +20,12 @@ int main(int argc, char* argv[]) {
 	pg_load(bus, pg); 
 
 	while(true) {
-		uint8_t code = clock(bus->cpu); 
+		uint8_t code = clock(bus); 
 		if(code == 0xff) 
 			break; 
+		print_stat(bus);
 		usleep(1); 
 	}
+	sys_clr(bus);
 	return 0; 
 }

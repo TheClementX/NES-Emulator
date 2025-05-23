@@ -7,8 +7,6 @@
 //A link to the reference manual for the 6502 cpu
 //https://www.masswerk.at/6502/6502_instruction_set.html#modes
 
-//6502 function type definition  
-typedef uint8_t cpu_func(void); 
 
 struct cpu {
 	//registers 
@@ -17,18 +15,22 @@ struct cpu {
 	uint8_t Y; 
 	uint16_t pc; //program counter
 	//stack is on pg1 from 0x0100 - 0x01ff
-	uint8_t stkpt; //stack pointer 
+	uint16_t stkpt; //stack pointer 
 	uint8_t stat; //status / flags
 
 	bus_t bus; 	
-	op_table_t op_table; 
 
 	uint8_t cycles; //to store cycle count 
 	uint8_t tmp; //to store mem values
 	uint8_t code; //current opcode value
 	uint16_t cur_mem; //location of current memory lookup 
+	bool imp; // says whether or not the previous instruction was implied 
+			  // memory mode. set by the clock function
 }; 
 typedef struct cpu* cpu_t; 
+
+//6502 function type definition  
+typedef uint8_t cpu_func(cpu_t cpu); 
 
 //flag functions
 enum FLAGS {
@@ -62,13 +64,10 @@ void cpu_write(cpu_t cpu, uint16_t addr, uint8_t data);
 
 //stack push
 void cpu_stack_push(cpu_t cpu, uint8_t data); 
-void cpu_stack_pop(cpu_t cpu); 
-
-//clock
-uint8_t clock(cpu_t cpu); 
+uint8_t cpu_stack_pop(cpu_t cpu); 
 
 //maskable interrupt
-void IRQ(cput_t cpu); 
+void IRQ(cpu_t cpu); 
 
 //non maskable interrupt
 void NMI(cpu_t cpu); 
