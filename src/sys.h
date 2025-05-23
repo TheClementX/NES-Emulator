@@ -62,6 +62,13 @@ void pg_load(bus_t bus, char* path) {
 	bus_write(bus, mem_loc, 0xff); 
 }
 
+void set_pc(bus_t bus) {
+	uint16_t rlo = (uint16_t)bus_read(bus, 0xfffc, true); 
+	uint16_t rhi = (uint16_t)bus_read(bus, 0xfffd, true); 
+	uint16_t res = (rhi << 8) | rlo; 
+	bus->cpu->pc = res; 
+}
+
 void print_mem(bus_t bus, uint16_t start, uint16_t end) {
 	for(uint16_t i = start; i < end; i++)
 		printf("%hhx\n", bus_read(bus, i, true));
@@ -84,13 +91,13 @@ void print_stat(bus_t bus) {
 			flag_get(N, cpu)
 	); 
 
-	printf("INTERNAL VARS: cycles %d | tmp %x | code %x | cur_mem %x\n\n", 
+	printf("INTERNAL VARS: cycles %d | tmp %hhx | code %hhx | cur_mem %hx\n\n", 
 			cpu->cycles, 
 			cpu->tmp, 
 			cpu->code,
 			cpu->cur_mem
 	); 
-	printf("REGISTERS: accum %x | X %x | Y %x | pc %x | stkpt %x\n\n",
+	printf("REGISTERS: accum %hhx | X %hhx | Y %hhx | pc %hx | stkpt %hx\n\n",
 			cpu->accum, 
 			cpu->X,
 			cpu->Y,

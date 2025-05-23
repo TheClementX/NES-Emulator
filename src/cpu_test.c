@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
 	char* pg = argv[1]; 
 	bus_t bus = sys_init(); 
 	pg_load(bus, pg); 
+	set_pc(bus); 
 
 	while(true) {
 		uint8_t code = clock(bus); 
